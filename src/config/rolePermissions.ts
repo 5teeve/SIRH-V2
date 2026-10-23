@@ -91,18 +91,17 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     badgeLabel: 'Console Administration',
     badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
     defaultTab: 'dashboard',
-    allowedTabs: ['dashboard', 'bloc1', 'bloc2', 'bloc3', 'bloc4', 'carrieres', 'audit', 'sql'],
+    allowedTabs: ['dashboard', 'bloc1', 'bloc2', 'bloc3', 'bloc4', 'carrieres', 'audit'],
     tabLabels: {
       dashboard: 'Console Système',
-      bloc1: 'Besoins',
-      bloc2: 'Recrutement',
-      bloc3: 'Embauche',
-      bloc4: 'Onboarding',
+      bloc1: 'Besoins en personnel',
+      bloc2: 'Recrutement & Candidats',
+      bloc3: 'Embauche & Contrats',
+      bloc4: 'Onboarding & Parcours',
       carrieres: 'Portail Carrières',
       audit: 'Journal d’Audit',
-      sql: 'Dossier SQL',
     },
-    description: 'Supervision globale de l’infrastructure, dictionnaire SQL, référentiels et droits d’accès.',
+    description: 'Supervision globale de l’infrastructure, référentiels et droits d’accès.',
   },
   EMPLOYE: {
     role: 'EMPLOYE',
@@ -110,10 +109,10 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     subtitle: 'Mon contrat de travail, mon parcours d’intégration et mes opportunités',
     badgeLabel: 'Mon Espace Collaborateur',
     badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
-    defaultTab: 'espace_employe',
-    allowedTabs: ['espace_employe', 'carrieres'],
+    defaultTab: 'employe',
+    allowedTabs: ['employe', 'carrieres'],
     tabLabels: {
-      espace_employe: 'Mon Espace Collaborateur',
+      employe: 'Espace Salarié (Accueil)',
       carrieres: 'Offres & Mobilité',
     },
     description: 'Consultation du contrat de travail, suivi des étapes d’onboarding personnel et candidature aux opportunités de mobilité interne.',
@@ -128,7 +127,7 @@ export function isTabAllowed(role: UserRole, tab: string): boolean {
 
 export function getDefaultTabForRole(role: UserRole): string {
   const config = ROLE_CONFIGS[role];
-  return config ? config.defaultTab : 'dashboard';
+  return config ? config.defaultTab : 'employe';
 }
 
 export function getTabLabel(role: UserRole, tabId: string): string {
@@ -137,15 +136,14 @@ export function getTabLabel(role: UserRole, tabId: string): string {
     return config.tabLabels[tabId];
   }
   const defaultLabels: Record<string, string> = {
+    employe: 'Espace Salarié (Accueil)',
     dashboard: 'Tableau de bord',
     bloc1: 'Besoins en personnel',
-    bloc2: 'Recrutement',
-    bloc3: 'Embauche',
-    bloc4: 'Onboarding',
+    bloc2: 'Recrutement & Candidats',
+    bloc3: 'Embauche & Contrats',
+    bloc4: 'Onboarding & Parcours',
     carrieres: 'Portail Carrières',
     audit: 'Journal d’Audit',
-    sql: 'Dossier SQL',
-    espace_employe: 'Mon Espace Collaborateur',
   };
   return defaultLabels[tabId] || tabId;
 }

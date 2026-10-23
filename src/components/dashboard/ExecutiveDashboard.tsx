@@ -339,7 +339,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                           {candidat?.prenom} {candidat?.nom}
                         </div>
                         <div className="text-[11px] text-slate-500 mt-0.5">
-                          {offre?.titre || 'Poste technique'} · Score IA : <strong>{cand.score_adequation_ia || 85}%</strong>
+                          {offre?.titre || 'Poste technique'} · Score IA : <strong>{cand.score_adequation_ia || cand.score_preselection || 85}%</strong>
                         </div>
                         <div className="text-[10px] text-indigo-600 mt-1 font-medium">
                           Statut : {cand.statut}

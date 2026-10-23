@@ -22,7 +22,7 @@ test('sirhStore initializes with required data blocks', () => {
   assert.ok(state.services.length > 0, 'services should exist');
   assert.ok(state.postes.length > 0, 'postes should exist');
   assert.ok(state.demandes.length > 0, 'demandes should exist');
-  assert.equal(state.currentRole, 'RH', 'default role should be RH');
+  assert.equal(state.currentRole, 'EMPLOYE', 'default role should be EMPLOYE');
 });
 
 test('sirhStore switches user roles and selects correct user', () => {

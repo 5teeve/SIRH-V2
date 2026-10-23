@@ -636,6 +636,7 @@ const INITIAL_ONBOARDINGS: Onboarding[] = [
 export interface SirhState {
   currentUser: Utilisateur;
   currentRole: UserRole;
+  isAuthenticated: boolean;
   users: Utilisateur[];
   departements: Departement[];
   services: Service[];
@@ -658,7 +659,7 @@ export interface SirhState {
   referentiels: Referentiel[];
 }
 
-const STORAGE_KEY = 'sirh_state_v1';
+const STORAGE_KEY = 'sirh_state_v3';
 
 export class SirhDataStore {
   private state: SirhState;
@@ -674,7 +675,11 @@ export class SirhDataStore {
       if (typeof localStorage !== 'undefined') {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          return {
+            ...parsed,
+            isAuthenticated: parsed.isAuthenticated ?? false,
+          };
         }
       }
     } catch (e) {
@@ -682,8 +687,9 @@ export class SirhDataStore {
     }
 
     return {
-      currentUser: INITIAL_USERS[2], // Default as RH: Tanteraka Rasoa
-      currentRole: 'RH',
+      currentUser: INITIAL_USERS[5], // Default role: EMPLOYE (Mamy Ranaivo)
+      currentRole: 'EMPLOYE',
+      isAuthenticated: false,
       users: INITIAL_USERS,
       departements: INITIAL_DEPARTEMENTS,
       services: INITIAL_SERVICES,
@@ -740,8 +746,9 @@ export class SirhDataStore {
       localStorage.removeItem(STORAGE_KEY);
     }
     this.state = {
-      currentUser: INITIAL_USERS[2],
-      currentRole: 'RH',
+      currentUser: INITIAL_USERS[5], // Mamy Ranaivo (EMPLOYE)
+      currentRole: 'EMPLOYE',
+      isAuthenticated: false,
       users: INITIAL_USERS,
       departements: INITIAL_DEPARTEMENTS,
       services: INITIAL_SERVICES,
@@ -819,12 +826,73 @@ export class SirhDataStore {
     this.saveState();
   }
 
-  // --- Gestion du Rôle Actuel (ET1) ---
+  // --- Gestion de l'Authentification & Rôle (ET1) ---
   public switchRole(role: UserRole): void {
     const targetUser = this.state.users.find((u) => u.role === role) || this.state.currentUser;
     this.state.currentRole = role;
     this.state.currentUser = targetUser;
+    // Any management role switch implies authentication
+    if (role !== 'EMPLOYE') {
+      this.state.isAuthenticated = true;
+    }
     this.saveState();
+  }
+
+  public loginUser(user: Utilisateur): void {
+    this.state.currentUser = user;
+    this.state.currentRole = user.role;
+    this.state.isAuthenticated = true;
+    this.logMouvement('AUTH', user.id, 'CONNEXION', null, { role: user.role, email: user.email }, 'Connexion utilisateur');
+    this.saveState();
+  }
+
+  public logoutUser(): void {
+    // Reset to unauthenticated employee landing
+    const guestUser = this.state.users.find((u) => u.role === 'EMPLOYE') || INITIAL_USERS[5];
+    this.state.currentUser = guestUser;
+    this.state.currentRole = 'EMPLOYE';
+    this.state.isAuthenticated = false;
+    this.saveState();
+  }
+
+  public registerEmploye(data: {
+    nom: string;
+    prenom: string;
+    email: string;
+    matricule?: string;
+    departement_id?: string;
+    service_id?: string;
+  }): Utilisateur {
+    const newId = `user-${Date.now()}`;
+    const matricule = data.matricule || `EMP-2026-${String(Math.floor(100 + Math.random() * 900))}`;
+    const newUser: Utilisateur = {
+      id: newId,
+      matricule,
+      nom: data.nom,
+      prenom: data.prenom,
+      email: data.email,
+      role: 'EMPLOYE',
+      departement_id: data.departement_id || 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      service_id: data.service_id || 'srv-0001-0000-0000-000000000001',
+      actif: true,
+    };
+
+    this.state.users = [...this.state.users, newUser];
+    this.state.currentUser = newUser;
+    this.state.currentRole = 'EMPLOYE';
+    this.state.isAuthenticated = true;
+
+    this.logMouvement(
+      'UTILISATEUR',
+      newId,
+      'INSCRIPTION_COLLABORATEUR',
+      null,
+      newUser,
+      `Inscription du collaborateur ${newUser.prenom} ${newUser.nom} (${matricule})`
+    );
+
+    this.saveState();
+    return newUser;
   }
 
   // =========================================================================

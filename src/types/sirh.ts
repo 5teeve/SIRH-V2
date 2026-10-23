@@ -169,6 +169,7 @@ export interface Candidature {
   date_candidature: string;
   statut: CandidatureStatut;
   score_preselection?: number;
+  score_adequation_ia?: number;
   rang_final?: number;
   motif_refus?: string;
   commentaires_rh?: string;
