@@ -50,6 +50,22 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
   const [horaires, setHoraires] = useState('40h/semaine (Lundi au Vendredi de 8h à 17h)');
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Contract preview selection
+  const [selectedContractId, setSelectedContractId] = useState<string>('');
+
+  const activeContrat =
+    (selectedContractId && state.contrats.find((c) => c.id === selectedContractId)) ||
+    (selectedProposition && state.contrats.find((c) => {
+      const pCand = state.candidatures.find((cd) => cd.id === selectedProposition.candidature_id);
+      const pEmp = state.employes.find((e) => e.candidature_origine_id === pCand?.id || e.candidat_origine_id === pCand?.candidat_id);
+      return c.employe_id === pEmp?.id;
+    })) ||
+    state.contrats[0];
+
+  const activeEmploye = state.employes.find((e) => e.id === activeContrat?.employe_id) || state.employes[0];
+  const activeCandidat = state.candidats.find((c) => c.id === activeEmploye?.candidat_origine_id) || state.candidats[0];
+  const activePoste = state.postes.find((p) => p.id === activeContrat?.poste_id);
+
   // Response simulation modal
   const [showReponseModal, setShowReponseModal] = useState(false);
   const [reponseDecision, setReponseDecision] = useState<'ACCEPTEE' | 'NEGOCIATION' | 'REFUSEE'>('ACCEPTEE');
@@ -381,7 +397,17 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
                             {emp.statut}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              const ctr = state.contrats.find((c) => c.employe_id === emp.id);
+                              if (ctr) setSelectedContractId(ctr.id);
+                              setActiveTab('contratPreview');
+                            }}
+                            className="px-2.5 py-1 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-[11px] font-medium transition-colors"
+                          >
+                            Voir Contrat
+                          </button>
                           <button
                             onClick={() => onNavigateToBloc4 && onNavigateToBloc4(emp.id)}
                             className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded text-[11px] font-medium transition-colors"
@@ -402,20 +428,41 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
       {/* TAB 3 : GÉNÉRATEUR & APERÇU DE CONTRAT DE TRAVAIL */}
       {activeTab === 'contratPreview' && (
         <div className="bg-white rounded-2xl border border-slate-300 p-8 shadow-sm max-w-4xl mx-auto space-y-6 print:border-none print:shadow-none">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200 no-print">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 no-print">
             <div>
               <span className="text-xs font-mono text-slate-400">Document Juridique Officiel</span>
               <h3 className="text-lg font-bold text-slate-900">
-                Contrat de Travail à Durée Indéterminée
+                Contrat de Travail {activeContrat?.type_contrat || 'CDI'}
               </h3>
             </div>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors shadow-xs"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Imprimer / Exporter PDF</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {state.contrats.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500 whitespace-nowrap">Contrat :</span>
+                  <select
+                    value={activeContrat?.id || ''}
+                    onChange={(e) => setSelectedContractId(e.target.value)}
+                    className="text-xs p-1.5 border border-slate-300 rounded-lg bg-white font-medium"
+                  >
+                    {state.contrats.map((ctr) => {
+                      const emp = state.employes.find((e) => e.id === ctr.employe_id);
+                      return (
+                        <option key={ctr.id} value={ctr.id}>
+                          {ctr.numero} — {emp?.prenom} {emp?.nom} ({ctr.type_contrat})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors shadow-xs"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer / Exporter PDF</span>
+              </button>
+            </div>
           </div>
 
           {/* Legal Contract Document Format */}
@@ -428,10 +475,10 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
                 Code du Travail — Loi N° 2003-044
               </p>
               <h1 className="text-lg font-bold uppercase tracking-wide text-slate-950 mt-3">
-                CONTRAT DE TRAVAIL
+                CONTRAT DE TRAVAIL ({activeContrat?.type_contrat || 'CDI'})
               </h1>
               <p className="font-mono text-xs text-slate-500 mt-1">
-                Réf : {state.contrats[0]?.numero || 'CTR-2026-0001'}
+                Réf : {activeContrat?.numero || 'CTR-2026-0001'}
               </p>
             </div>
 
@@ -445,11 +492,11 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
               <p className="mt-2">
                 ET Monsieur / Madame{' '}
                 <strong>
-                  {state.candidats[0]?.prenom} {state.candidats[0]?.nom}
+                  {activeEmploye?.prenom || activeCandidat?.prenom} {activeEmploye?.nom || activeCandidat?.nom}
                 </strong>
-                , né(e) le {state.candidats[0]?.date_naissance}, titulaire de la CIN N°{' '}
-                <span className="font-mono">{state.candidats[0]?.cin}</span>, demeurant au{' '}
-                {state.candidats[0]?.adresse}, ci-après dénommé(e) <em>« Le Salarié »</em>, d’autre part.
+                , né(e) le {activeEmploye?.date_naissance || activeCandidat?.date_naissance || '15/06/1996'}, titulaire de la CIN N°{' '}
+                <span className="font-mono">{activeEmploye?.cin || activeCandidat?.cin || '101 234 567 890'}</span>, demeurant au{' '}
+                {activeEmploye?.adresse_domicile || activeCandidat?.adresse || 'Antananarivo'}, ci-après dénommé(e) <em>« Le Salarié »</em>, d’autre part.
               </p>
             </div>
 
@@ -459,7 +506,7 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
               </h4>
               <p className="mt-1">
                 L’Employeur engage le Salarié en qualité de{' '}
-                <strong>Ingénieur Full-Stack Senior TypeScript & PostgreSQL</strong>. Le Salarié exercera ses fonctions sous l'autorité hiérarchique de la Direction Technique.
+                <strong>{activePoste?.intitule || 'Ingénieur Spécialiste'}</strong>. Le Salarié exercera ses fonctions sous l'autorité hiérarchique de la Direction.
               </p>
             </div>
 
@@ -468,8 +515,8 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
                 ARTICLE 2 : DURÉE DU CONTRAT ET PÉRIODE D’ESSAI
               </h4>
               <p className="mt-1">
-                Le présent contrat est conclu pour une durée indéterminée (CDI) à compter du{' '}
-                <strong>15 Novembre 2026</strong>. Il deviendra définitif à l'issue d'une période d'essai de <strong>90 jours</strong>, renouvelable une fois conformément aux dispositions légales en vigueur.
+                Le présent contrat est conclu pour une durée {activeContrat?.type_contrat === 'CDI' ? 'indéterminée (CDI)' : `déterminée (${activeContrat?.type_contrat || 'CDD'})`} à compter du{' '}
+                <strong>{activeContrat?.date_debut ? new Date(activeContrat.date_debut).toLocaleDateString('fr-FR') : '15 Novembre 2026'}</strong>. Il deviendra définitif à l'issue d'une période d'essai de <strong>{activeContrat?.periode_essai_fin ? `${Math.max(1, Math.round((new Date(activeContrat.periode_essai_fin).getTime() - new Date(activeContrat.date_debut).getTime()) / (86400000)))} jours` : '90 jours'}</strong>, renouvelable conformément aux dispositions légales en vigueur.
               </p>
             </div>
 
@@ -479,7 +526,7 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
               </h4>
               <p className="mt-1">
                 En contrepartie de ses prestations, le Salarié percevra un salaire mensuel brut de{' '}
-                <strong>4.800.000 Ariary (Quatre millions huit cent mille Ariary)</strong>, assujetti aux cotisations sociales légales (CNaPS et OSTIE) et à l’IRSA.
+                <strong>{activeContrat?.remuneration_base ? `${activeContrat.remuneration_base.toLocaleString('fr-FR')} Ariary` : '4.800.000 Ariary'}</strong>, assujetti aux cotisations sociales légales (CNaPS et OSTIE) et à l’IRSA.
               </p>
             </div>
 
@@ -488,7 +535,7 @@ export const Bloc3Embauche: React.FC<Bloc3EmbaucheProps> = ({ state, onNavigateT
                 ARTICLE 4 : HORAIRES ET LIEU DE TRAVAIL
               </h4>
               <p className="mt-1">
-                La durée hebdomadaire de travail est fixée à <strong>40 heures par semaine</strong>, du lundi au vendredi. Le lieu de travail habituel est situé au siège social à Ankorondrano, avec aménagement en télétravail partiel selon la charte d'entreprise.
+                La durée hebdomadaire de travail est fixée à <strong>{activeContrat?.duree_hebdomadaire_heures || 40} heures par semaine</strong>, du lundi au vendredi. Le lieu de travail habituel est situé au {activeContrat?.lieu_travail || 'Siège Social — Ankorondrano, Antananarivo'}, avec aménagement selon la charte d'entreprise.
               </p>
             </div>
 

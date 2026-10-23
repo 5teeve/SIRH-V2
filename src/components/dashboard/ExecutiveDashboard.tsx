@@ -244,8 +244,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 <div className="font-mono text-2xl font-bold tracking-tight text-slate-900">
                   {state.onboardings.length}
                 </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  Mamy Ranaivo (Full-Stack Senior · 60%)
+                <div className="text-xs text-slate-500 mt-1 truncate">
+                  {state.onboardings.length > 0 ? (() => {
+                    const latestOnb = state.onboardings[0];
+                    const latestEmp = state.employes.find((e) => e.id === latestOnb.employe_id);
+                    const latestCtr = state.contrats.find((c) => c.id === latestOnb.contrat_id);
+                    const latestPoste = state.postes.find((p) => p.id === latestCtr?.poste_id);
+                    return latestEmp
+                      ? `${latestEmp.prenom} ${latestEmp.nom} (${latestPoste?.intitule || 'Collaborateur'} · ${latestOnb.taux_avancement}%)`
+                      : 'Aucun nouvel arrivant';
+                  })() : 'Aucun arrivant'}
                 </div>
               </div>
             </div>

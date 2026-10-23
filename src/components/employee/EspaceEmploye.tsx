@@ -42,16 +42,23 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
   const [quickRequestType, setQuickRequestType] = useState('CONGES');
   const [quickRequestSent, setQuickRequestSent] = useState(false);
 
-  // Active or sample employee data
+  const [selectedEmployeId, setSelectedEmployeId] = useState<string>('');
+
+  // Active or sample employee data (priorise le dernier candidat embauché si disponible)
   const employe =
+    (selectedEmployeId && state.employes.find((e) => e.id === selectedEmployeId)) ||
+    (state.derniereEmbaucheEmployeId && state.employes.find((e) => e.id === state.derniereEmbaucheEmployeId)) ||
     state.employes.find((e) => e.matricule === state.currentUser.matricule) ||
+    state.employes.find((e) => e.email_professionnel === state.currentUser.email || e.email_personnel === state.currentUser.email) ||
     state.employes[0];
   const contrat =
     state.contrats.find((c) => c.employe_id === employe?.id) || state.contrats[0];
   const onboarding =
     state.onboardings.find((o) => o.employe_id === employe?.id) || state.onboardings[0];
   const poste = state.postes.find((p) => p.id === contrat?.poste_id);
-  const dept = state.departements.find((d) => d.id === state.currentUser.departement_id);
+  const dept = state.departements.find((d) => d.id === (poste?.departement_id || state.currentUser.departement_id));
+
+  const employeNomComplet = employe ? `${employe.prenom} ${employe.nom}` : `${state.currentUser.prenom} ${state.currentUser.nom}`;
 
   // Days remaining in probation period
   const dateFinEssai = new Date(contrat?.periode_essai_fin || '2027-01-15');
@@ -63,7 +70,7 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
     e.preventDefault();
     sirhStore.pushNotification(
       `Demande ${quickRequestType}`,
-      `Demande soumise par ${state.currentUser.prenom} ${state.currentUser.nom} (${employe?.matricule || 'EMP-2026-0001'})`,
+      `Demande soumise par ${employeNomComplet} (${employe?.matricule || 'EMP-2026-0001'})`,
       'ACTION_REQUISE',
       'RH'
     );
@@ -168,6 +175,42 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
         </div>
       </div>
 
+      {/* Collaborator Profile Selector (Si plusieurs salariés sont enregistrés) */}
+      {state.employes.length > 1 && (
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs">
+            <User className="w-4 h-4 text-indigo-600" />
+            <span className="font-semibold text-slate-700">Dossier Salarié Actif :</span>
+            <span className="font-bold text-slate-900">{employeNomComplet}</span>
+            {employe?.matricule && (
+              <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded font-semibold text-slate-600">
+                {employe.matricule}
+              </span>
+            )}
+            <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded">
+              {employe?.statut || 'EN_ONBOARDING'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Changer de collaborateur :</span>
+            <select
+              value={employe?.id || ''}
+              onChange={(e) => {
+                setSelectedEmployeId(e.target.value);
+                sirhStore.selectEmploye(e.target.value);
+              }}
+              className="p-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-800"
+            >
+              {state.employes.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.prenom} {emp.nom} ({emp.matricule || 'Sans matricule'})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Lightweight Status & Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Card 1: Contrat & Statut */}
@@ -182,7 +225,7 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
 
             <div className="mt-4 space-y-2">
               <div className="text-sm font-bold text-slate-900">
-                {state.currentUser.prenom} {state.currentUser.nom}
+                {employeNomComplet}
               </div>
               <div className="text-xs text-slate-500">
                 {poste?.intitule || 'Ingénieur Full-Stack Senior'} · {contrat?.type_contrat || 'CDI'}
@@ -462,7 +505,7 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
                 <div>
                   <span className="text-slate-500 block text-[11px]">Collaborateur</span>
                   <span className="font-bold text-slate-900">
-                    {state.currentUser.prenom} {state.currentUser.nom}
+                    {employeNomComplet}
                   </span>
                 </div>
                 <div>
