@@ -46,8 +46,6 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
   const [publishMissions, setPublishMissions] = useState('');
   const [publishProfil, setPublishProfil] = useState('');
   const [publishDateCloture, setPublishDateCloture] = useState('');
-  const [publishSalaireMin, setPublishSalaireMin] = useState(0);
-  const [publishSalaireMax, setPublishSalaireMax] = useState(0);
 
   const handleOpenPublishModal = (dem: DemandeRecrutement) => {
     const poste = state.postes.find((p) => p.id === dem.poste_id);
@@ -58,13 +56,6 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
     setPublishLieu('Siège Social — Ankorondrano, Antananarivo');
     const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
     setPublishDateCloture(in30Days);
-
-    const maxBudget = dem.budget_estime || (poste ? poste.fourchette_salaire_max : 4500000);
-    const minBudget = (poste && poste.fourchette_salaire_min < maxBudget)
-      ? poste.fourchette_salaire_min
-      : Math.round((maxBudget * 0.85) / 10000) * 10000;
-    setPublishSalaireMin(minBudget);
-    setPublishSalaireMax(maxBudget);
   };
 
   const handleConfirmPublish = (e: React.FormEvent) => {
@@ -77,8 +68,6 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
         missions: publishMissions,
         profil_recherche: publishProfil,
         date_cloture: publishDateCloture,
-        salaire_min: publishSalaireMin,
-        salaire_max: publishSalaireMax,
       });
       const publishedId = demandeToPublish.id;
       setDemandeToPublish(null);
@@ -1007,43 +996,10 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
                 />
               </div>
 
-              {/* Rémunération proposée sur l'offre */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-emerald-50/60 p-3 rounded-lg border border-emerald-200/80">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Salaire minimum (Ar / mois) *
-                  </label>
-                  <input
-                    type="number"
-                    step="10000"
-                    value={publishSalaireMin}
-                    onChange={(e) => setPublishSalaireMin(Number(e.target.value))}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono font-semibold text-slate-900 bg-white"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Salaire maximum (Ar / mois) *
-                  </label>
-                  <input
-                    type="number"
-                    step="10000"
-                    value={publishSalaireMax}
-                    onChange={(e) => setPublishSalaireMax(Number(e.target.value))}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono font-semibold text-emerald-800 bg-white"
-                    required
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Aligné par défaut sur le budget validé ({demandeToPublish.budget_estime.toLocaleString('fr-FR')} Ar)
-                  </p>
-                </div>
-              </div>
-
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-600 flex items-center justify-between text-[11px]">
                 <span>Contrat : <strong className="text-slate-900">{demandeToPublish.type_contrat_souhaite}</strong></span>
                 <span>Postes : <strong className="text-slate-900">{demandeToPublish.nombre_postes}</strong></span>
-                <span>Budget initial : <strong className="text-slate-900 font-mono">{demandeToPublish.budget_estime.toLocaleString('fr-FR')} Ar</strong></span>
+                <span>Budget : <strong className="text-slate-900 font-mono">{demandeToPublish.budget_estime.toLocaleString('fr-FR')} Ar</strong></span>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

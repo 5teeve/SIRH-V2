@@ -657,6 +657,17 @@ export interface SirhState {
   notifications: NotificationItem[];
   parametres: Parametre[];
   referentiels: Referentiel[];
+  dbStatus?: 'connecting' | 'connected' | 'fallback' | 'error';
+  dbInfo?: {
+    connected: boolean;
+    source?: string;
+    serverTime?: string;
+    databaseName?: string;
+    version?: string;
+    tablesCount?: number;
+    lastSyncedAt?: string;
+    message?: string;
+  };
 }
 
 const STORAGE_KEY = 'sirh_state_v3';
@@ -668,6 +679,122 @@ export class SirhDataStore {
 
   constructor() {
     this.state = this.loadState();
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.fetchFromNeon();
+      }, 50);
+    }
+  }
+
+  // --- Neon PostgreSQL Integration ---
+  public async fetchFromNeon(): Promise<boolean> {
+    try {
+      this.state.dbStatus = 'connecting';
+      this.notify();
+
+      const res = await fetch('/api/sirh');
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const result = await res.json();
+
+      if (result.ok && result.connected && result.data) {
+        const d = result.data;
+        this.state = {
+          ...this.state,
+          users: d.users?.length ? d.users : this.state.users,
+          departements: d.departements?.length ? d.departements : this.state.departements,
+          services: d.services?.length ? d.services : this.state.services,
+          postes: d.postes?.length ? d.postes : this.state.postes,
+          demandes: d.demandes?.length ? d.demandes : this.state.demandes,
+          offres: d.offres?.length ? d.offres : this.state.offres,
+          candidats: d.candidats?.length ? d.candidats : this.state.candidats,
+          candidatures: d.candidatures?.length ? d.candidatures : this.state.candidatures,
+          entretiens: d.entretiens?.length ? d.entretiens : this.state.entretiens,
+          evaluations: d.evaluations?.length ? d.evaluations : this.state.evaluations,
+          propositions: d.propositions?.length ? d.propositions : this.state.propositions,
+          contrats: d.contrats?.length ? d.contrats : this.state.contrats,
+          employes: d.employes?.length ? d.employes : this.state.employes,
+          onboardings: d.onboardings?.length ? d.onboardings : this.state.onboardings,
+          journal: d.journal?.length ? d.journal : this.state.journal,
+          notifications: d.notifications?.length ? d.notifications : this.state.notifications,
+          parametres: d.parametres?.length ? d.parametres : this.state.parametres,
+          referentiels: d.referentiels?.length ? d.referentiels : this.state.referentiels,
+          dbStatus: 'connected',
+          dbInfo: {
+            connected: true,
+            source: 'Neon PostgreSQL (En ligne)',
+            lastSyncedAt: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            message: 'Données synchronisées avec Neon PostgreSQL',
+          },
+        };
+        this.saveState();
+        return true;
+      } else {
+        this.state.dbStatus = 'fallback';
+        this.state.dbInfo = {
+          connected: false,
+          source: 'Cache Local (Navigateur)',
+          message: result.message || 'Mode hors-ligne / DATABASE_URL non configuré',
+        };
+        this.notify();
+        return false;
+      }
+    } catch (err: any) {
+      this.state.dbStatus = 'fallback';
+      this.state.dbInfo = {
+        connected: false,
+        source: 'Cache Local (Navigateur)',
+        message: err.message || 'Impossible de joindre /api/sirh',
+      };
+      this.notify();
+      return false;
+    }
+  }
+
+  public async checkNeonHealth(): Promise<any> {
+    try {
+      const res = await fetch('/api/sirh?action=health');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.ok && data.connected) {
+        this.state.dbStatus = 'connected';
+        this.state.dbInfo = {
+          connected: true,
+          source: 'Neon PostgreSQL',
+          serverTime: data.serverTime,
+          databaseName: data.databaseName,
+          version: data.version,
+          tablesCount: data.tablesCount,
+          lastSyncedAt: new Date().toLocaleTimeString('fr-FR'),
+          message: `Connecté à la base ${data.databaseName} (${data.tablesCount} tables créées)`,
+        };
+      } else {
+        this.state.dbStatus = 'fallback';
+        this.state.dbInfo = {
+          connected: false,
+          source: 'Cache Local (Navigateur)',
+          message: data.message || data.error || 'Erreur de connexion',
+        };
+      }
+      this.notify();
+      return data;
+    } catch (e: any) {
+      return { ok: false, connected: false, error: e.message };
+    }
+  }
+
+  public async syncActionToNeon(action: string, payload: any): Promise<void> {
+    try {
+      if (typeof window === 'undefined') return;
+      await fetch('/api/sirh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload }),
+      });
+    } catch (e) {
+      console.warn(`[Neon Sync] Action '${action}' failed:`, e);
+    }
   }
 
   private loadState(): SirhState {
@@ -676,67 +803,10 @@ export class SirhDataStore {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const stateToReturn = {
+          return {
             ...parsed,
             isAuthenticated: parsed.isAuthenticated ?? false,
           };
-
-          // Synchronisation automatique : chaque demande au statut OUVERTE doit avoir son offre PUBLIEE avec son budget réel
-          if (Array.isArray(stateToReturn.demandes) && Array.isArray(stateToReturn.offres)) {
-            for (const dem of stateToReturn.demandes) {
-              if (dem.statut === 'OUVERTE' && !stateToReturn.offres.some((o: any) => o.demande_id === dem.id)) {
-                const poste = (stateToReturn.postes || INITIAL_POSTES).find((p: any) => p.id === dem.poste_id);
-                const numSeq = stateToReturn.offres.length + 1;
-                const reference = `OFF-2026-${String(numSeq).padStart(4, '0')}`;
-                const nowIso = new Date().toISOString();
-                const maxBudget = dem.budget_estime || poste?.fourchette_salaire_max || 4500000;
-                const minBudget = (poste && poste.fourchette_salaire_min < maxBudget)
-                  ? poste.fourchette_salaire_min
-                  : Math.round((maxBudget * 0.85) / 10000) * 10000;
-
-                const nouvelleOffre = {
-                  id: `off-${Date.now()}-${numSeq}`,
-                  reference,
-                  demande_id: dem.id,
-                  poste_id: dem.poste_id,
-                  titre: poste ? poste.intitule : 'Offre de Recrutement',
-                  departement_id: dem.departement_id,
-                  missions: dem.motif || (poste ? poste.description : 'Missions du poste'),
-                  profil_recherche: dem.justification || 'Profil qualifié selon exigences du poste.',
-                  competences_requises: poste ? poste.competences_requises : ['Autonomie', 'Esprit d’équipe'],
-                  type_contrat: dem.type_contrat_souhaite,
-                  lieu: 'Siège Social — Ankorondrano, Antananarivo',
-                  salaire_affiche: true,
-                  salaire_min: minBudget,
-                  salaire_max: maxBudget,
-                  nombre_postes: dem.nombre_postes,
-                  postes_pourvus: 0,
-                  date_publication: nowIso.split('T')[0],
-                  date_cloture: new Date(Date.now() + 45 * 86400000).toISOString().split('T')[0],
-                  statut: 'PUBLIEE',
-                  cree_par: dem.demandeur_nom || 'Direction Générale',
-                  created_at: nowIso,
-                };
-                stateToReturn.offres.push(nouvelleOffre);
-              }
-            }
-
-            // Correction et synchronisation des salaires pour toutes les offres existantes
-            for (const off of stateToReturn.offres) {
-              const matchedDem = stateToReturn.demandes.find((d: any) => d.id === off.demande_id);
-              if (matchedDem && matchedDem.budget_estime) {
-                const maxBudget = matchedDem.budget_estime;
-                const poste = (stateToReturn.postes || INITIAL_POSTES).find((p: any) => p.id === matchedDem.poste_id);
-                const minBudget = (poste && poste.fourchette_salaire_min < maxBudget)
-                  ? poste.fourchette_salaire_min
-                  : Math.round((maxBudget * 0.85) / 10000) * 10000;
-                off.salaire_max = maxBudget;
-                off.salaire_min = minBudget;
-              }
-            }
-          }
-
-          return stateToReturn;
         }
       }
     } catch (e) {
@@ -1114,20 +1184,12 @@ export class SirhDataStore {
       } else if (etape === 'DIRECTION') {
         dem.statut = 'OUVERTE';
         dem.etape_validation_actuelle = 'CLOTURE';
-
-        // Auto-création et publication immédiate de l'offre d'emploi sur le portail carrières (RG06, EF2.1)
-        if (!this.state.offres.some((o) => o.demande_id === dem.id)) {
-          this.creerOffre(dem.id, {
-            statut: 'PUBLIEE',
-          });
-        }
-
         this.pushNotification(
-          'Demande approuvée & Offre publiée en ligne',
-          `La demande ${dem.numero} est validée par la Direction : l'offre d'emploi est désormais en ligne sur le portail carrières !`,
+          'Demande définitivement approuvée (OUVERTE)',
+          `La demande ${dem.numero} a reçu la validation de la Direction. La RH peut publier l’offre d’emploi !`,
           'INFO',
           'RH',
-          'carrieres'
+          'bloc2'
         );
       }
     } else if (decision === 'RENVOYER') {
@@ -1221,18 +1283,6 @@ export class SirhDataStore {
     const reference = `OFF-2026-${String(numSeq).padStart(4, '0')}`;
     const now = new Date().toISOString();
 
-    const salaireMax =
-      details.salaire_max !== undefined
-        ? details.salaire_max
-        : dem.budget_estime || poste?.fourchette_salaire_max || 4500000;
-
-    const salaireMin =
-      details.salaire_min !== undefined
-        ? details.salaire_min
-        : poste && poste.fourchette_salaire_min < salaireMax
-        ? poste.fourchette_salaire_min
-        : Math.round((salaireMax * 0.85) / 10000) * 10000;
-
     const nouvelleOffre: OffreEmploi = {
       id: `off-${Date.now()}`,
       reference,
@@ -1246,8 +1296,8 @@ export class SirhDataStore {
       type_contrat: details.type_contrat || dem.type_contrat_souhaite,
       lieu: details.lieu || 'Siège Social — Ankorondrano, Antananarivo',
       salaire_affiche: details.salaire_affiche ?? true,
-      salaire_min: salaireMin,
-      salaire_max: salaireMax,
+      salaire_min: details.salaire_min || (poste ? poste.fourchette_salaire_min : undefined),
+      salaire_max: details.salaire_max || (poste ? poste.fourchette_salaire_max : undefined),
       nombre_postes: dem.nombre_postes,
       postes_pourvus: 0,
       date_publication: details.date_publication || now.split('T')[0],

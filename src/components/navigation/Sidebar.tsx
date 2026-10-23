@@ -21,7 +21,9 @@ import {
   X,
   Building2,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { UserRole, Utilisateur, NotificationItem } from '../../types/sirh';
 import { ROLE_CONFIGS, getTabLabel } from '../../config/rolePermissions';
@@ -32,6 +34,9 @@ interface SidebarProps {
   isAuthenticated: boolean;
   notifications: NotificationItem[];
   activeTab: string;
+  dbStatus?: 'connecting' | 'connected' | 'fallback' | 'error';
+  dbInfo?: any;
+  onSyncDb?: () => void;
   onNavigateTab: (tab: string) => void;
   onOpenAuth: (rolePrompt?: string, mode?: 'login' | 'register') => void;
   onLogout: () => void;
@@ -44,6 +49,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAuthenticated,
   notifications,
   activeTab,
+  dbStatus = 'fallback',
+  dbInfo,
+  onSyncDb,
   onNavigateTab,
   onOpenAuth,
   onLogout,
@@ -202,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <Briefcase className={`w-4 h-4 ${activeTab === 'carrieres' ? 'text-white' : 'text-slate-400'}`} />
-                  <span>Portail Carrières (Postuler)</span>
+                  <span>Offres d'Emploi</span>
                 </div>
               </button>
             </div>
@@ -244,25 +252,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            {/* Quick access back to Front-Office (Espace Salarié & Portail Carrières) for back-office users */}
-            <div className="pt-3 border-t border-slate-800/60 space-y-1">
+            {/* Quick access back to Front-Office (Espace Salarié) for back-office users */}
+            <div className="pt-3 border-t border-slate-800/60">
               <div className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                Aperçu Front-Office (Public)
+                Aperçu Front-Office
               </div>
-              <button
-                onClick={() => handleNavClick('carrieres')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
-                  activeTab === 'carrieres'
-                    ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Portail Carrières (Postuler)</span>
-                </div>
-              </button>
-
               <button
                 onClick={() => handleNavClick('employe')}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
@@ -273,12 +267,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Espace Collaborateur (Accueil)</span>
+                  <span>Site Public / Salarié</span>
                 </div>
               </button>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Database Connection Status */}
+      <div className="px-3 py-2 border-t border-slate-800/80 bg-slate-900/60">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Database className={`w-3.5 h-3.5 shrink-0 ${
+              dbStatus === 'connected' ? 'text-emerald-400' : dbStatus === 'connecting' ? 'text-blue-400 animate-spin' : 'text-amber-400'
+            }`} />
+            <div className="truncate">
+              <div className="text-[10px] font-semibold flex items-center gap-1 text-slate-300">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  dbStatus === 'connected' ? 'bg-emerald-400' : dbStatus === 'connecting' ? 'bg-blue-400 animate-pulse' : 'bg-amber-400'
+                }`} />
+                <span className="truncate">
+                  {dbStatus === 'connected' ? 'Neon PostgreSQL' : dbStatus === 'connecting' ? 'Connexion Neon...' : 'Mode Démo / Local'}
+                </span>
+              </div>
+              <p className="text-[9px] text-slate-400 truncate" title={dbInfo?.message || (dbStatus === 'connected' ? 'Base synchronisée' : 'En attente de DATABASE_URL')}>
+                {dbStatus === 'connected'
+                  ? (dbInfo?.databaseName ? `${dbInfo.databaseName} (Synchro ${dbInfo.lastSyncedAt || 'OK'})` : 'Connecté à Neon')
+                  : 'Cache local actif'}
+              </p>
+            </div>
+          </div>
+          {onSyncDb && (
+            <button
+              onClick={onSyncDb}
+              disabled={dbStatus === 'connecting'}
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-50"
+              title="Tester la connexion et synchroniser avec Neon"
+            >
+              <RefreshCw className={`w-3 h-3 ${dbStatus === 'connecting' ? 'animate-spin text-blue-400' : ''}`} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* User / Authentication Status Footer */}

@@ -84,6 +84,11 @@ export default function App() {
     }
   };
 
+  const handleSyncNeon = async () => {
+    await sirhStore.checkNeonHealth();
+    await sirhStore.fetchFromNeon();
+  };
+
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
@@ -94,6 +99,9 @@ export default function App() {
           isAuthenticated={state.isAuthenticated}
           notifications={state.notifications}
           activeTab={activeTab}
+          dbStatus={state.dbStatus}
+          dbInfo={state.dbInfo}
+          onSyncDb={handleSyncNeon}
           onNavigateTab={handleNavigateTab}
           onOpenAuth={handleOpenAuth}
           onLogout={handleLogout}

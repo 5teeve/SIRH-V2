@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import http from 'http';
 import express from 'express';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import sirhHandler from './api/sirh';
 
 dotenv.config();
 
@@ -24,6 +26,10 @@ const ai = new GoogleGenAI({
     },
   },
 });
+
+// Neon PostgreSQL SIRH API Endpoint
+app.all('/api/sirh', (req, res) => sirhHandler(req, res));
+app.all('/api/sirh/*', (req, res) => sirhHandler(req, res));
 
 // Chatbot API Endpoint
 app.post('/api/chat', async (req, res) => {
@@ -137,10 +143,15 @@ Quelle question souhaitez-vous approfondir ?`;
 // Mount Vite middleware in development mode
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
+  const httpServer = http.createServer(app);
 
   if (!isProd) {
+    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: isHmrDisabled ? false : { server: httpServer },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -151,7 +162,7 @@ async function startServer() {
     });
   }
 
-  app.listen(port, '0.0.0.0', () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     console.log(`SIRH Server listening on http://0.0.0.0:${port}`);
   });
 }
