@@ -108,10 +108,33 @@ export const SirhChatbot: React.FC = () => {
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err: any) {
+      // Graceful domain fallback if server or Vercel is unreachable or throws 500
+      let fallbackText = "Je suis votre Assistant RH. ";
+      const q = text.toLowerCase();
+      if (q.includes('validation') || q.includes('besoin') || q.includes('demande') || q.includes('approbation')) {
+        fallbackText += `Le circuit d'approbation d'une demande de recrutement comprend 4 étapes :
+1. **Création** par le Manager.
+2. **Validation RH** : contrôle de conformité au poste et compétences.
+3. **Validation Finance** : vérification de l'enveloppe budgétaire.
+4. **Validation Direction Générale** : arbitrage stratégique.
+Dès que la Direction approuve, la demande passe à "OUVERTE" et peut être publiée directement en offre d'emploi.`;
+      } else if (q.includes('contrat') || q.includes('essai') || q.includes('cdd') || q.includes('cdi')) {
+        fallbackText += `Concernant la réglementation des contrats :
+- **Période d'essai** : 90 jours max (CDI), 30 jours max (CDD).
+- **Renouvellement CDD** : 2 renouvellements consécutifs maximum.
+- **Matricule** : Généré séquentiellement dès signature du 1er contrat.`;
+      } else if (q.includes('onboarding') || q.includes('integration') || q.includes('tache')) {
+        fallbackText += `Le parcours d'onboarding coordonne 5 services : RH (contrat, livret), IT (comptes, accès), Logistique (matériel, badge), Paie (CNAPS, OSTIE, RIB) et Manager (accueil le 1er jour).`;
+      } else {
+        fallbackText += `Je réponds à vos questions sur les 4 blocs du SIRH (Besoins, Recrutement, Embauche, Onboarding).`;
+      }
+
+      fallbackText += `\n\n*(Note : activez la variable d'environnement GEMINI_API_KEY sur votre projet Vercel pour le modèle IA en direct)*`;
+
       const errorMessage: ChatMessage = {
-        id: `bot-err-${Date.now()}`,
+        id: `bot-fallback-${Date.now()}`,
         role: 'model',
-        text: `Désolé, une erreur est survenue lors de la communication avec l'assistant RH : ${err.message}`,
+        text: fallbackText,
         timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMessage]);

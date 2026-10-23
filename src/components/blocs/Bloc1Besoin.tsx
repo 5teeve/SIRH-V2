@@ -39,6 +39,46 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
   const [dateReexamen, setDateReexamen] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Modal Publication d'offre
+  const [demandeToPublish, setDemandeToPublish] = useState<DemandeRecrutement | null>(null);
+  const [publishTitre, setPublishTitre] = useState('');
+  const [publishLieu, setPublishLieu] = useState('Siège Social — Ankorondrano, Antananarivo');
+  const [publishMissions, setPublishMissions] = useState('');
+  const [publishProfil, setPublishProfil] = useState('');
+  const [publishDateCloture, setPublishDateCloture] = useState('');
+
+  const handleOpenPublishModal = (dem: DemandeRecrutement) => {
+    const poste = state.postes.find((p) => p.id === dem.poste_id);
+    setDemandeToPublish(dem);
+    setPublishTitre(poste ? poste.intitule : 'Offre de recrutement');
+    setPublishMissions(dem.motif || (poste ? poste.description : ''));
+    setPublishProfil(dem.justification || '');
+    setPublishLieu('Siège Social — Ankorondrano, Antananarivo');
+    const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    setPublishDateCloture(in30Days);
+  };
+
+  const handleConfirmPublish = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demandeToPublish) return;
+    try {
+      sirhStore.creerOffre(demandeToPublish.id, {
+        titre: publishTitre,
+        lieu: publishLieu,
+        missions: publishMissions,
+        profil_recherche: publishProfil,
+        date_cloture: publishDateCloture,
+      });
+      const publishedId = demandeToPublish.id;
+      setDemandeToPublish(null);
+      if (onNavigateToBloc2) {
+        onNavigateToBloc2(publishedId);
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erreur lors de la publication de l’offre');
+    }
+  };
+
   // Form State
   const [nouveauPosteId, setNouveauPosteId] = useState(state.postes[0]?.id || '');
   const [typeDemande, setTypeDemande] = useState<'CREATION' | 'REMPLACEMENT'>('CREATION');
@@ -295,14 +335,28 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
                           </td>
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {dem.statut === 'OUVERTE' && (
-                                <button
-                                  onClick={() => onNavigateToBloc2 && onNavigateToBloc2(dem.id)}
-                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-medium transition-colors"
-                                >
-                                  Publier Offre ➔
-                                </button>
-                              )}
+                              {dem.statut === 'OUVERTE' && (() => {
+                                const offreExistante = state.offres.find((o) => o.demande_id === dem.id);
+                                if (offreExistante) {
+                                  return (
+                                    <button
+                                      onClick={() => onNavigateToBloc2 && onNavigateToBloc2(dem.id)}
+                                      className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[11px] font-medium transition-colors"
+                                      title={`Offre publiée sous la référence ${offreExistante.reference}`}
+                                    >
+                                      Offre ({offreExistante.reference}) ➔
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <button
+                                    onClick={() => handleOpenPublishModal(dem)}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors shadow-xs"
+                                  >
+                                    Publier Offre ➔
+                                  </button>
+                                );
+                              })()}
 
                               {userCanAct && dem.etape_validation_actuelle !== 'CLOTURE' && (
                                 <button
@@ -857,6 +911,113 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL : Publication d'une Offre d'Emploi issue d'un Besoin Validé */}
+      {demandeToPublish && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Demande Validée · {demandeToPublish.numero}
+                </span>
+                <h3 className="text-base font-bold text-slate-900 mt-1">
+                  Publier l'Offre de Recrutement
+                </h3>
+              </div>
+              <button
+                onClick={() => setDemandeToPublish(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmPublish} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Intitulé public de l'offre *
+                </label>
+                <input
+                  type="text"
+                  value={publishTitre}
+                  onChange={(e) => setPublishTitre(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Lieu d'affectation *</label>
+                  <input
+                    type="text"
+                    value={publishLieu}
+                    onChange={(e) => setPublishLieu(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Date limite de candidature *</label>
+                  <input
+                    type="date"
+                    value={publishDateCloture}
+                    onChange={(e) => setPublishDateCloture(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Missions principales *</label>
+                <textarea
+                  rows={3}
+                  value={publishMissions}
+                  onChange={(e) => setPublishMissions(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Profil recherché & Compétences *</label>
+                <textarea
+                  rows={3}
+                  value={publishProfil}
+                  onChange={(e) => setPublishProfil(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                  required
+                />
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-600 flex items-center justify-between text-[11px]">
+                <span>Contrat : <strong className="text-slate-900">{demandeToPublish.type_contrat_souhaite}</strong></span>
+                <span>Postes : <strong className="text-slate-900">{demandeToPublish.nombre_postes}</strong></span>
+                <span>Budget : <strong className="text-slate-900 font-mono">{demandeToPublish.budget_estime.toLocaleString('fr-FR')} Ar</strong></span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDemandeToPublish(null)}
+                  className="px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition-colors"
+                >
+                  Confirmer et Publier l'Offre ➔
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -70,7 +70,7 @@ Réponds de manière professionnelle, claire, bienveillante, concise et structur
         });
 
         const geminiPromise = ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: formattedContents,
           config: {
             systemInstruction,
@@ -79,7 +79,7 @@ Réponds de manière professionnelle, claire, bienveillante, concise et structur
         });
 
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout de réponse Gemini (3s)')), 3000)
+          setTimeout(() => reject(new Error('Timeout de réponse Gemini (8s)')), 8000)
         );
 
         const response: any = await Promise.race([geminiPromise, timeoutPromise]);

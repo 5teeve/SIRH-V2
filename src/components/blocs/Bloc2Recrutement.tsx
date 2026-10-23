@@ -39,6 +39,8 @@ export const Bloc2Recrutement: React.FC<Bloc2RecrutementProps> = ({ state, onNav
   // Modals
   const [showPlanifModal, setShowPlanifModal] = useState(false);
   const [showEvalModal, setShowEvalModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [selectedDemandeToPublish, setSelectedDemandeToPublish] = useState<string>('');
   const [selectedEntretienForEval, setSelectedEntretienForEval] = useState<Entretien | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -182,8 +184,63 @@ export const Bloc2Recrutement: React.FC<Bloc2RecrutementProps> = ({ state, onNav
       </div>
 
       {/* TAB 1 : OFFRES D'EMPLOI */}
-      {activeTab === 'offres' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {activeTab === 'offres' && (() => {
+        const demandesOuvertesSansOffre = state.demandes.filter(
+          (d) => d.statut === 'OUVERTE' && !state.offres.some((o) => o.demande_id === d.id)
+        );
+
+        return (
+          <div className="space-y-4">
+            {/* Action Bar & Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Catalogue des Offres ({state.offres.length})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Offres actives, candidatures reçues et suivi du vivier de recrutement.
+                </p>
+              </div>
+
+              {demandesOuvertesSansOffre.length > 0 && (
+                <button
+                  onClick={() => {
+                    setSelectedDemandeToPublish(demandesOuvertesSansOffre[0]?.id || '');
+                    setShowPublishModal(true);
+                  }}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Publier un Besoin Validé ({demandesOuvertesSansOffre.length})</span>
+                </button>
+              )}
+            </div>
+
+            {/* Banner if open requests are waiting */}
+            {demandesOuvertesSansOffre.length > 0 && (
+              <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    {demandesOuvertesSansOffre.length}
+                  </div>
+                  <div className="text-xs text-emerald-900">
+                    <strong>Nouveau besoin validé par la Direction !</strong> La demande{' '}
+                    <span className="font-mono font-semibold">{demandesOuvertesSansOffre[0]?.numero}</span> est approuvée et prête pour publication.
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedDemandeToPublish(demandesOuvertesSansOffre[0]?.id || '');
+                    setShowPublishModal(true);
+                  }}
+                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline whitespace-nowrap"
+                >
+                  Publier l'offre maintenant →
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {state.offres.map((offre) => {
             const candidaturesAssociees = state.candidatures.filter((c) => c.offre_id === offre.id);
 
@@ -251,8 +308,10 @@ export const Bloc2Recrutement: React.FC<Bloc2RecrutementProps> = ({ state, onNav
               </div>
             );
           })}
-        </div>
-      )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* TAB 2 : CANDIDATURES */}
       {activeTab === 'candidatures' && (
@@ -755,6 +814,102 @@ export const Bloc2Recrutement: React.FC<Bloc2RecrutementProps> = ({ state, onNav
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL : Publier une offre depuis une demande validée */}
+      {showPublishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
+                Publier une Offre d'Emploi (Besoin Validé)
+              </h3>
+              <button
+                onClick={() => setShowPublishModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Sélectionnez la demande de recrutement validée (OUVERTE) :
+                </label>
+                <select
+                  value={selectedDemandeToPublish}
+                  onChange={(e) => setSelectedDemandeToPublish(e.target.value)}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg bg-white text-xs font-medium"
+                >
+                  {state.demandes
+                    .filter((d) => d.statut === 'OUVERTE')
+                    .map((dem) => {
+                      const poste = state.postes.find((p) => p.id === dem.poste_id);
+                      const dejaPubliee = state.offres.some((o) => o.demande_id === dem.id);
+                      return (
+                        <option key={dem.id} value={dem.id}>
+                          {dem.numero} · {poste?.intitule} ({dem.type_contrat_souhaite}) {dejaPubliee ? '[Déjà publiée]' : '[À publier]'}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+
+              {(() => {
+                const dem = state.demandes.find((d) => d.id === selectedDemandeToPublish);
+                const poste = dem ? state.postes.find((p) => p.id === dem.poste_id) : null;
+                const dejaPubliee = dem ? state.offres.some((o) => o.demande_id === dem.id) : false;
+
+                if (!dem) return null;
+
+                return (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-slate-600">
+                    <div className="font-semibold text-slate-900 text-sm">{poste?.intitule}</div>
+                    <div className="text-[11px] text-slate-500">{poste?.description}</div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                      <div>Contrat : <strong className="text-slate-800">{dem.type_contrat_souhaite}</strong></div>
+                      <div>Postes : <strong className="text-slate-800">{dem.nombre_postes}</strong></div>
+                      <div>Budget : <strong className="text-slate-800 font-mono">{dem.budget_estime.toLocaleString('fr-FR')} Ar</strong></div>
+                      <div>Urgence : <strong className="text-slate-800">{dem.urgence}</strong></div>
+                    </div>
+
+                    {dejaPubliee && (
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded text-[11px]">
+                        Attention : Une offre a déjà été créée pour cette demande.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPublishModal(false)}
+                  className="px-3.5 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedDemandeToPublish) return;
+                    try {
+                      sirhStore.creerOffre(selectedDemandeToPublish, {});
+                      setShowPublishModal(false);
+                    } catch (err: any) {
+                      alert(err.message);
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition-colors"
+                >
+                  Confirmer et Publier l'Offre ➔
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
