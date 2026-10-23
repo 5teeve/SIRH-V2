@@ -104,25 +104,25 @@ export default async function handler(req: any, res: any) {
         parametres,
         referentiels,
       ] = await Promise.all([
-        sql`SELECT id, matricule, nom, prenom, email, role, departement_id, service_id, actif, created_at FROM utilisateurs WHERE is_deleted = false ORDER BY nom, prenom`,
-        sql`SELECT id, code, nom, description, responsable_id FROM departements ORDER BY code`,
-        sql`SELECT id, departement_id, code, nom, description, responsable_id FROM services ORDER BY code`,
-        sql`SELECT id, code, intitule, departement_id, service_id, description, competences_requises, fourchette_salaire_min, fourchette_salaire_max, effectif_autorise, effectif_pourvu, statut FROM postes ORDER BY code`,
-        sql`SELECT id, numero, type, demandeur_id, poste_id, departement_id, service_id, nombre_postes, motif, justification, type_contrat_souhaite, date_souhaitee, urgence, budget_estime, ancien_titulaire_ref, statut, etape_validation_actuelle, date_validation_finale, created_at FROM demandes_recrutement ORDER BY created_at DESC`,
-        sql`SELECT id, reference, demande_id, poste_id, titre, departement_id, missions, profil_recherche, competences_requises, type_contrat, lieu, salaire_affiche, salaire_min, salaire_max, nombre_postes, postes_pourvus, date_publication, date_cloture, statut, cree_par, created_at FROM offres_emploi ORDER BY date_publication DESC`,
-        sql`SELECT id, cin, nom, prenom, date_naissance, email, telephone, adresse, cv_url, titre_actuel, annees_experience, created_at FROM candidats ORDER BY created_at DESC`,
-        sql`SELECT id, numero, offre_id, candidat_id, statut, score_preselection, rang_final, commentaires_rh, date_reception, created_at FROM candidatures ORDER BY created_at DESC`,
-        sql`SELECT id, candidature_id, type_entretien, date_heure, duree_minutes, salle, modalite, lien_visio, interviewer_nom, interviewer_role, statut, created_at FROM entretiens ORDER BY date_heure DESC`,
-        sql`SELECT id, entretien_id, candidature_id, evaluateur_nom, note_technique, note_soft_skills, note_globale, commentaire, recommandation, verrouille, date_evaluation, created_at FROM evaluations ORDER BY date_evaluation DESC`,
-        sql`SELECT id, numero, candidature_id, poste_id, version, remuneration_mensuelle, type_contrat, date_debut_prevue, duree_mois, periode_essai_jours, horaires_travail, lieu_travail, avantages, date_limite_reponse, statut, date_reponse, motif_refus_ou_negociation, emise_par, created_at FROM propositions_embauche ORDER BY created_at DESC`,
-        sql`SELECT id, numero, employe_id, poste_id, contrat_precedent_id, type_contrat, date_debut, date_fin, periode_essai_fin, remuneration_base, duree_hebdomadaire_heures, lieu_travail, statut, date_signature, document_signe_url, signe_par_employe, signe_par_employeur, date_validation, valide_par, motif_annulation, numero_avenant, created_at FROM contrats WHERE is_deleted = false ORDER BY created_at DESC`,
-        sql`SELECT id, matricule, candidat_origine_id, candidature_origine_id, nom, prenom, cin, date_naissance, lieu_naissance, nationalite, situation_matrimoniale, nombre_enfants, email_professionnel, email_personnel, telephone, adresse_domicile, numero_cnaps, numero_ostie, rib_bancaire, statut, date_entree, date_sortie, created_at FROM employes ORDER BY created_at DESC`,
-        sql`SELECT id, employe_id, contrat_id, modele_id, date_debut, date_fin_prevue, date_cloture_reelle, statut, taux_avancement, commentaires, created_at FROM onboardings ORDER BY created_at DESC`,
-        sql`SELECT id, onboarding_id, titre, description, responsable, assigne_a, date_echeance, obligatoire, statut, date_realisation, commentaire_realisation, created_at FROM taches_onboarding ORDER BY date_echeance ASC`,
-        sql`SELECT id, utilisateur_id, nom_utilisateur, role_utilisateur, entite, entite_id, action, valeur_avant, valeur_apres, motif_ou_commentaire, adresse_ip, created_at FROM journal_mouvements ORDER BY created_at DESC LIMIT 100`,
-        sql`SELECT id, destinataire_id, titre, message, type, lien_cible, lu, date_lecture, created_at FROM notifications ORDER BY created_at DESC LIMIT 50`,
-        sql`SELECT cle, valeur, type_donnee, description, modifiable_par_admin FROM parametres`,
-        sql`SELECT id, categorie, code, libelle, description, ordre, actif FROM referentiels WHERE actif = true ORDER BY categorie, ordre`,
+        sql`SELECT * FROM utilisateurs WHERE is_deleted = false ORDER BY nom, prenom`,
+        sql`SELECT * FROM departements ORDER BY code`,
+        sql`SELECT * FROM services ORDER BY code`,
+        sql`SELECT * FROM postes ORDER BY code`,
+        sql`SELECT * FROM demandes_recrutement ORDER BY created_at DESC`,
+        sql`SELECT * FROM offres_emploi ORDER BY date_publication DESC`,
+        sql`SELECT * FROM candidats ORDER BY created_at DESC`,
+        sql`SELECT * FROM candidatures ORDER BY created_at DESC`,
+        sql`SELECT * FROM entretiens ORDER BY created_at DESC`,
+        sql`SELECT * FROM evaluations ORDER BY created_at DESC`,
+        sql`SELECT * FROM propositions_embauche ORDER BY created_at DESC`,
+        sql`SELECT * FROM contrats WHERE is_deleted = false ORDER BY created_at DESC`,
+        sql`SELECT * FROM employes ORDER BY created_at DESC`,
+        sql`SELECT * FROM onboardings ORDER BY created_at DESC`,
+        sql`SELECT * FROM taches_onboarding ORDER BY date_echeance ASC`,
+        sql`SELECT * FROM journal_mouvements ORDER BY created_at DESC LIMIT 100`,
+        sql`SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50`,
+        sql`SELECT * FROM parametres`,
+        sql`SELECT * FROM referentiels WHERE actif = true ORDER BY categorie, ordre`,
       ]);
 
       // Normalize array types and field mappings for the frontend
@@ -191,7 +191,7 @@ export default async function handler(req: any, res: any) {
             obligatoire: t.obligatoire,
             date_echeance: t.date_echeance,
             date_realisation: t.date_realisation,
-            commentaire: t.commentaire_realisation,
+            commentaire: t.commentaire_execution || t.commentaire_realisation || '',
           })),
         };
       });
@@ -259,12 +259,11 @@ export default async function handler(req: any, res: any) {
       }
 
       if (action === 'update_demande_statut' && payload) {
-        const { id, statut, etape_validation_actuelle, date_validation_finale } = payload;
+        const { id, statut, etape_validation_actuelle } = payload;
         const result = await sql`
           UPDATE demandes_recrutement
           SET statut = ${statut},
               etape_validation_actuelle = ${etape_validation_actuelle || null},
-              date_validation_finale = ${date_validation_finale || null},
               updated_at = NOW()
           WHERE id = ${id}
           RETURNING id, numero, statut;
