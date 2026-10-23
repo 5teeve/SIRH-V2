@@ -1,0 +1,6 @@
+{
+  "name": "SIRH Entreprise - Gestion des Ressources Humaines & Recrutement",
+  "description": "Système d'Information des Ressources Humaines (SIRH) complet couvrant les 4 blocs fondamentaux : Besoin, Recrutement, Embauche, et Onboarding avec PostgreSQL et 3D Twin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
