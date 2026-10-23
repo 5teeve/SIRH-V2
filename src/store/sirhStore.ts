@@ -676,10 +676,48 @@ export class SirhDataStore {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          return {
+          const stateToReturn = {
             ...parsed,
             isAuthenticated: parsed.isAuthenticated ?? false,
           };
+
+          // Synchronisation automatique : chaque demande au statut OUVERTE doit avoir son offre PUBLIEE
+          if (Array.isArray(stateToReturn.demandes) && Array.isArray(stateToReturn.offres)) {
+            for (const dem of stateToReturn.demandes) {
+              if (dem.statut === 'OUVERTE' && !stateToReturn.offres.some((o: any) => o.demande_id === dem.id)) {
+                const poste = (stateToReturn.postes || INITIAL_POSTES).find((p: any) => p.id === dem.poste_id);
+                const numSeq = stateToReturn.offres.length + 1;
+                const reference = `OFF-2026-${String(numSeq).padStart(4, '0')}`;
+                const nowIso = new Date().toISOString();
+                const nouvelleOffre = {
+                  id: `off-${Date.now()}-${numSeq}`,
+                  reference,
+                  demande_id: dem.id,
+                  poste_id: dem.poste_id,
+                  titre: poste ? poste.intitule : 'Offre de Recrutement',
+                  departement_id: dem.departement_id,
+                  missions: dem.motif || (poste ? poste.description : 'Missions du poste'),
+                  profil_recherche: dem.justification || 'Profil qualifié selon exigences du poste.',
+                  competences_requises: poste ? poste.competences_requises : ['Autonomie', 'Esprit d’équipe'],
+                  type_contrat: dem.type_contrat_souhaite,
+                  lieu: 'Siège Social — Ankorondrano, Antananarivo',
+                  salaire_affiche: true,
+                  salaire_min: poste?.fourchette_salaire_min,
+                  salaire_max: dem.budget_estime || poste?.fourchette_salaire_max,
+                  nombre_postes: dem.nombre_postes,
+                  postes_pourvus: 0,
+                  date_publication: nowIso.split('T')[0],
+                  date_cloture: new Date(Date.now() + 45 * 86400000).toISOString().split('T')[0],
+                  statut: 'PUBLIEE',
+                  cree_par: dem.demandeur_nom || 'Direction Générale',
+                  created_at: nowIso,
+                };
+                stateToReturn.offres.push(nouvelleOffre);
+              }
+            }
+          }
+
+          return stateToReturn;
         }
       }
     } catch (e) {
@@ -1057,12 +1095,20 @@ export class SirhDataStore {
       } else if (etape === 'DIRECTION') {
         dem.statut = 'OUVERTE';
         dem.etape_validation_actuelle = 'CLOTURE';
+
+        // Auto-création et publication immédiate de l'offre d'emploi sur le portail carrières (RG06, EF2.1)
+        if (!this.state.offres.some((o) => o.demande_id === dem.id)) {
+          this.creerOffre(dem.id, {
+            statut: 'PUBLIEE',
+          });
+        }
+
         this.pushNotification(
-          'Demande définitivement approuvée (OUVERTE)',
-          `La demande ${dem.numero} a reçu la validation de la Direction. La RH peut publier l’offre d’emploi !`,
+          'Demande approuvée & Offre publiée en ligne',
+          `La demande ${dem.numero} est validée par la Direction : l'offre d'emploi est désormais en ligne sur le portail carrières !`,
           'INFO',
           'RH',
-          'bloc2'
+          'carrieres'
         );
       }
     } else if (decision === 'RENVOYER') {

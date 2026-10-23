@@ -62,6 +62,12 @@ export const PortailCarrieres: React.FC<PortailCarrieresProps> = ({ state }) => 
     return true;
   });
 
+  React.useEffect(() => {
+    if ((!selectedOffre || !publishedOffers.some((o) => o.id === selectedOffre.id)) && publishedOffers.length > 0) {
+      setSelectedOffre(publishedOffers[0]);
+    }
+  }, [publishedOffers, selectedOffre]);
+
   const handlePostuler = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOffre) return;

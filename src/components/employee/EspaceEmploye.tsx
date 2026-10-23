@@ -59,6 +59,8 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
   const diffTime = dateFinEssai.getTime() - today.getTime();
   const joursRestants = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
+  const publishedOffers = state.offres.filter((o) => o.statut === 'PUBLIEE');
+
   const handleSendQuickRequest = (e: React.FormEvent) => {
     e.preventDefault();
     sirhStore.pushNotification(
@@ -273,6 +275,95 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* SECTION PUBLIQUE : Offres d'Emploi en Ligne & Recrutement Direct */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-base font-bold text-slate-900">
+                Offres d'Emploi Actuelles & Recrutement ({publishedOffers.length} postes ouverts)
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Consultez nos opportunités ouvertes aux candidatures externes et à la mobilité interne.
+            </p>
+          </div>
+
+          <button
+            onClick={() => onNavigateTab('carrieres')}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Voir Toutes les Offres & Postuler</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Grid of Published Offers */}
+        {publishedOffers.length === 0 ? (
+          <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+            Aucun poste n'est actuellement publié en ligne.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {publishedOffers.map((offre) => {
+              const deptOffer = state.departements.find((d) => d.id === offre.departement_id);
+
+              return (
+                <div
+                  key={offre.id}
+                  className="p-4 rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between bg-slate-50/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-slate-500 font-semibold">{offre.reference}</span>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-semibold rounded text-[10px]">
+                        {offre.type_contrat}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-slate-900 mt-2 line-clamp-1">
+                      {offre.titre}
+                    </h3>
+
+                    <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                      {offre.missions}
+                    </div>
+
+                    <div className="mt-2 text-xs text-slate-600 space-y-0.5">
+                      <div>Lieu : <span className="font-medium text-slate-800">{offre.lieu}</span></div>
+                      {deptOffer && <div>Département : <span className="font-medium text-slate-800">{deptOffer.nom}</span></div>}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {offre.competences_requises.slice(0, 3).map((comp, idx) => (
+                        <span key={idx} className="text-[10px] bg-white border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
+                    <span className="text-xs font-mono font-semibold text-slate-700">
+                      {offre.salaire_min ? `${(offre.salaire_min / 1000000).toFixed(1)}M Ar` : 'Rémunération selon profil'}
+                    </span>
+                    <button
+                      onClick={() => onNavigateTab('carrieres')}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1"
+                    >
+                      <span>Postuler</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Two Columns: Checklist d'Onboarding & Documents Téléchargeables */}

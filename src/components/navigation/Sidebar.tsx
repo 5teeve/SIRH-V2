@@ -202,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <Briefcase className={`w-4 h-4 ${activeTab === 'carrieres' ? 'text-white' : 'text-slate-400'}`} />
-                  <span>Offres d'Emploi</span>
+                  <span>Portail Carrières (Postuler)</span>
                 </div>
               </button>
             </div>
@@ -244,11 +244,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            {/* Quick access back to Front-Office (Espace Salarié) for back-office users */}
-            <div className="pt-3 border-t border-slate-800/60">
+            {/* Quick access back to Front-Office (Espace Salarié & Portail Carrières) for back-office users */}
+            <div className="pt-3 border-t border-slate-800/60 space-y-1">
               <div className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                Aperçu Front-Office
+                Aperçu Front-Office (Public)
               </div>
+              <button
+                onClick={() => handleNavClick('carrieres')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                  activeTab === 'carrieres'
+                    ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Portail Carrières (Postuler)</span>
+                </div>
+              </button>
+
               <button
                 onClick={() => handleNavClick('employe')}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
@@ -259,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Site Public / Salarié</span>
+                  <span>Espace Collaborateur (Accueil)</span>
                 </div>
               </button>
             </div>
