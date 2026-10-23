@@ -13,7 +13,6 @@ import { Bloc2Recrutement } from './components/blocs/Bloc2Recrutement';
 import { Bloc3Embauche } from './components/blocs/Bloc3Embauche';
 import { Bloc4Onboarding } from './components/blocs/Bloc4Onboarding';
 import { PortailCarrieres } from './components/public/PortailCarrieres';
-import { CorporateCampus3D } from './components/three/CorporateCampus3D';
 import { JournalAudit } from './components/admin/JournalAudit';
 import { SqlStudio } from './components/admin/SqlStudio';
 import { SirhChatbot } from './components/chat/SirhChatbot';
@@ -95,26 +94,6 @@ export default function App() {
 
         {activeTab === 'carrieres' && (
           <PortailCarrieres state={state} />
-        )}
-
-        {activeTab === 'campus3d' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                  Campus Digital Twin 3D — Siège Social & Pôles SIRH
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Visualisation 3D temps réel du siège social d'Ankorondrano. Cliquez sur un pavillon pour inspecter ses métriques ou naviguez via le dock inférieur.
-                </p>
-              </div>
-            </div>
-
-            <CorporateCampus3D
-              state={state}
-              onSelectHub={(hub) => setActiveTab(hub)}
-            />
-          </div>
         )}
 
         {activeTab === 'audit' && (

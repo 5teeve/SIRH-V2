@@ -81,6 +81,17 @@ const INITIAL_USERS: Utilisateur[] = [
     role: 'DIRECTION',
     actif: true,
   },
+  {
+    id: '66666666-6666-6666-6666-666666666666',
+    matricule: 'EMP-2026-0001',
+    nom: 'Ranaivo',
+    prenom: 'Mamy',
+    email: 'mamy.ranaivo@sirh-entreprise.mg',
+    role: 'EMPLOYE',
+    departement_id: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    service_id: 'srv-0001-0000-0000-000000000001',
+    actif: true,
+  },
 ];
 
 const INITIAL_DEPARTEMENTS: Departement[] = [
@@ -507,6 +518,121 @@ const INITIAL_REFERENTIELS: Referentiel[] = [
   { id: 'ref-6', categorie: 'MOTIF_RENVOI', code: 'PRECISER_PROFIL', libelle: 'Préciser les compétences et missions requises', ordre: 2 },
 ];
 
+const INITIAL_EMPLOYES: Employe[] = [
+  {
+    id: 'emp-0001-0000-0000-000000000001',
+    matricule: 'EMP-2026-0001',
+    candidat_origine_id: 'cand-0001-0000-0000-000000000001',
+    candidature_origine_id: 'can-0001-0000-0000-000000000001',
+    nom: 'Ranaivo',
+    prenom: 'Mamy',
+    cin: '101 221 045 889',
+    date_naissance: '1996-05-14',
+    nationalite: 'Malgache',
+    situation_matrimoniale: 'Célibataire',
+    email_professionnel: 'mamy.ranaivo@sirh-entreprise.mg',
+    email_personnel: 'mamy.ranaivo@gmail.com',
+    telephone: '+261 34 11 223 34',
+    adresse_domicile: 'Lot II M 45 Bis Ankadifotsy, Antananarivo',
+    numero_cnaps: '98451203',
+    numero_ostie: 'OST-77412',
+    rib_bancaire: '00004 01245 0098451203 14',
+    statut: 'EN_ONBOARDING',
+    date_entree: '2026-10-15',
+    created_at: '2026-10-15T08:00:00Z',
+  },
+];
+
+const INITIAL_CONTRATS: Contrat[] = [
+  {
+    id: 'ctr-0001-0000-0000-000000000001',
+    numero: 'CTR-2026-0001',
+    employe_id: 'emp-0001-0000-0000-000000000001',
+    poste_id: 'post-0001-0000-0000-000000000001',
+    type_contrat: 'CDI',
+    date_debut: '2026-10-15',
+    periode_essai_fin: '2027-01-15',
+    remuneration_base: 4800000,
+    duree_hebdomadaire_heures: 40,
+    lieu_travail: 'Siège Social — Ankorondrano, Antananarivo',
+    statut: 'VALIDE',
+    signe_par_employe: true,
+    signe_par_employeur: true,
+    date_signature: '2026-10-14',
+    numero_avenant: 0,
+    created_at: '2026-10-14T14:00:00Z',
+  },
+];
+
+const INITIAL_ONBOARDINGS: Onboarding[] = [
+  {
+    id: 'onb-0001-0000-0000-000000000001',
+    employe_id: 'emp-0001-0000-0000-000000000001',
+    contrat_id: 'ctr-0001-0000-0000-000000000001',
+    date_debut: '2026-10-15',
+    date_fin_prevue: '2027-01-15',
+    statut: 'EN_COURS',
+    taux_avancement: 60,
+    commentaires: 'Intégration au sein de l’équipe Web & Cloud pilotée par Steeve Randria (Manager).',
+    taches: [
+      {
+        id: 'tch-1',
+        onboarding_id: 'onb-0001-0000-0000-000000000001',
+        titre: 'Configuration du poste de travail & habilitations IT',
+        description: 'Attribution du MacBook Pro M3, accès GitHub organisationnel et boite mail.',
+        responsable: 'IT',
+        date_echeance: '2026-10-15',
+        obligatoire: true,
+        statut: 'FAIT',
+        date_realisation: '2026-10-15T09:30:00Z',
+      },
+      {
+        id: 'tch-2',
+        onboarding_id: 'onb-0001-0000-0000-000000000001',
+        titre: 'Remise du badge sécurisé et livret d’accueil',
+        description: 'Badge d’accès physique au campus d’Ankorondrano et équipements.',
+        responsable: 'LOGISTIQUE',
+        date_echeance: '2026-10-15',
+        obligatoire: true,
+        statut: 'FAIT',
+        date_realisation: '2026-10-15T10:15:00Z',
+      },
+      {
+        id: 'tch-3',
+        onboarding_id: 'onb-0001-0000-0000-000000000001',
+        titre: 'Entretien d’accueil et cadrage des objectifs avec le Manager',
+        description: 'Session de cadrage des priorités techniques du 1er trimestre avec Steeve Randria.',
+        responsable: 'MANAGER',
+        date_echeance: '2026-10-16',
+        obligatoire: true,
+        statut: 'FAIT',
+        date_realisation: '2026-10-16T14:00:00Z',
+      },
+      {
+        id: 'tch-4',
+        onboarding_id: 'onb-0001-0000-0000-000000000001',
+        titre: 'Visite médicale obligatoire d’embauche (OSTIE)',
+        description: 'Consultation d’aptitude médicale légale selon le Code du Travail.',
+        responsable: 'RH',
+        date_echeance: '2026-11-15',
+        obligatoire: true,
+        statut: 'EN_COURS',
+      },
+      {
+        id: 'tch-5',
+        onboarding_id: 'onb-0001-0000-0000-000000000001',
+        titre: 'Rapport d’étonnement à J+30',
+        description: 'Restitution du collaborateur sur ses premières impressions d’intégration.',
+        responsable: 'RH',
+        date_echeance: '2026-11-15',
+        obligatoire: false,
+        statut: 'A_FAIRE',
+      },
+    ],
+    created_at: '2026-10-15T08:00:00Z',
+  },
+];
+
 export interface SirhState {
   currentUser: Utilisateur;
   currentRole: UserRole;
@@ -545,9 +671,11 @@ export class SirhDataStore {
 
   private loadState(): SirhState {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          return JSON.parse(saved);
+        }
       }
     } catch (e) {
       console.warn('Failed to load state from localStorage', e);
@@ -567,11 +695,11 @@ export class SirhDataStore {
       entretiens: INITIAL_ENTRETIENS,
       evaluations: INITIAL_EVALUATIONS,
       propositions: INITIAL_PROPOSITIONS,
-      contrats: [],
+      contrats: INITIAL_CONTRATS,
       piecesDossiers: [],
-      employes: [],
+      employes: INITIAL_EMPLOYES,
       affectations: [],
-      onboardings: [],
+      onboardings: INITIAL_ONBOARDINGS,
       journal: INITIAL_JOURNAL,
       notifications: INITIAL_NOTIFICATIONS,
       parametres: INITIAL_PARAMETRES,
@@ -581,7 +709,9 @@ export class SirhDataStore {
 
   private saveState(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      }
     } catch (e) {
       console.error('Error saving SIRH state', e);
     }
@@ -606,7 +736,9 @@ export class SirhDataStore {
   }
 
   public resetAll(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     this.state = {
       currentUser: INITIAL_USERS[2],
       currentRole: 'RH',
@@ -621,11 +753,11 @@ export class SirhDataStore {
       entretiens: INITIAL_ENTRETIENS,
       evaluations: INITIAL_EVALUATIONS,
       propositions: INITIAL_PROPOSITIONS,
-      contrats: [],
+      contrats: INITIAL_CONTRATS,
       piecesDossiers: [],
-      employes: [],
+      employes: INITIAL_EMPLOYES,
       affectations: [],
-      onboardings: [],
+      onboardings: INITIAL_ONBOARDINGS,
       journal: INITIAL_JOURNAL,
       notifications: INITIAL_NOTIFICATIONS,
       parametres: INITIAL_PARAMETRES,
