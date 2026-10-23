@@ -348,8 +348,12 @@ export const EspaceEmploye: React.FC<EspaceEmployeProps> = ({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
-                    <span className="text-xs font-mono font-semibold text-slate-700">
-                      {offre.salaire_min ? `${(offre.salaire_min / 1000000).toFixed(1)}M Ar` : 'Rémunération selon profil'}
+                    <span className="text-xs font-mono font-semibold text-emerald-700">
+                      {offre.salaire_min && offre.salaire_max
+                        ? `${offre.salaire_min.toLocaleString('fr-FR')} – ${offre.salaire_max.toLocaleString('fr-FR')} Ar`
+                        : offre.salaire_max
+                        ? `${offre.salaire_max.toLocaleString('fr-FR')} Ar`
+                        : 'Selon profil'}
                     </span>
                     <button
                       onClick={() => onNavigateTab('carrieres')}

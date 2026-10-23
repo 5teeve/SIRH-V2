@@ -229,7 +229,14 @@ export const PortailCarrieres: React.FC<PortailCarrieresProps> = ({ state }) => 
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mt-2">{selectedOffre.titre}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{selectedOffre.lieu}</p>
+                <div className="flex flex-wrap items-center gap-3 mt-1 text-xs">
+                  <span className="text-slate-500">{selectedOffre.lieu}</span>
+                  {selectedOffre.salaire_affiche && selectedOffre.salaire_min && selectedOffre.salaire_max && (
+                    <span className="font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">
+                      💰 {selectedOffre.salaire_min.toLocaleString('fr-FR')} – {selectedOffre.salaire_max.toLocaleString('fr-FR')} Ar / mois
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Missions & Profil */}

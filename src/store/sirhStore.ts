@@ -681,7 +681,7 @@ export class SirhDataStore {
             isAuthenticated: parsed.isAuthenticated ?? false,
           };
 
-          // Synchronisation automatique : chaque demande au statut OUVERTE doit avoir son offre PUBLIEE
+          // Synchronisation automatique : chaque demande au statut OUVERTE doit avoir son offre PUBLIEE avec son budget réel
           if (Array.isArray(stateToReturn.demandes) && Array.isArray(stateToReturn.offres)) {
             for (const dem of stateToReturn.demandes) {
               if (dem.statut === 'OUVERTE' && !stateToReturn.offres.some((o: any) => o.demande_id === dem.id)) {
@@ -689,6 +689,11 @@ export class SirhDataStore {
                 const numSeq = stateToReturn.offres.length + 1;
                 const reference = `OFF-2026-${String(numSeq).padStart(4, '0')}`;
                 const nowIso = new Date().toISOString();
+                const maxBudget = dem.budget_estime || poste?.fourchette_salaire_max || 4500000;
+                const minBudget = (poste && poste.fourchette_salaire_min < maxBudget)
+                  ? poste.fourchette_salaire_min
+                  : Math.round((maxBudget * 0.85) / 10000) * 10000;
+
                 const nouvelleOffre = {
                   id: `off-${Date.now()}-${numSeq}`,
                   reference,
@@ -702,8 +707,8 @@ export class SirhDataStore {
                   type_contrat: dem.type_contrat_souhaite,
                   lieu: 'Siège Social — Ankorondrano, Antananarivo',
                   salaire_affiche: true,
-                  salaire_min: poste?.fourchette_salaire_min,
-                  salaire_max: dem.budget_estime || poste?.fourchette_salaire_max,
+                  salaire_min: minBudget,
+                  salaire_max: maxBudget,
                   nombre_postes: dem.nombre_postes,
                   postes_pourvus: 0,
                   date_publication: nowIso.split('T')[0],
@@ -713,6 +718,20 @@ export class SirhDataStore {
                   created_at: nowIso,
                 };
                 stateToReturn.offres.push(nouvelleOffre);
+              }
+            }
+
+            // Correction et synchronisation des salaires pour toutes les offres existantes
+            for (const off of stateToReturn.offres) {
+              const matchedDem = stateToReturn.demandes.find((d: any) => d.id === off.demande_id);
+              if (matchedDem && matchedDem.budget_estime) {
+                const maxBudget = matchedDem.budget_estime;
+                const poste = (stateToReturn.postes || INITIAL_POSTES).find((p: any) => p.id === matchedDem.poste_id);
+                const minBudget = (poste && poste.fourchette_salaire_min < maxBudget)
+                  ? poste.fourchette_salaire_min
+                  : Math.round((maxBudget * 0.85) / 10000) * 10000;
+                off.salaire_max = maxBudget;
+                off.salaire_min = minBudget;
               }
             }
           }
@@ -1202,6 +1221,18 @@ export class SirhDataStore {
     const reference = `OFF-2026-${String(numSeq).padStart(4, '0')}`;
     const now = new Date().toISOString();
 
+    const salaireMax =
+      details.salaire_max !== undefined
+        ? details.salaire_max
+        : dem.budget_estime || poste?.fourchette_salaire_max || 4500000;
+
+    const salaireMin =
+      details.salaire_min !== undefined
+        ? details.salaire_min
+        : poste && poste.fourchette_salaire_min < salaireMax
+        ? poste.fourchette_salaire_min
+        : Math.round((salaireMax * 0.85) / 10000) * 10000;
+
     const nouvelleOffre: OffreEmploi = {
       id: `off-${Date.now()}`,
       reference,
@@ -1215,8 +1246,8 @@ export class SirhDataStore {
       type_contrat: details.type_contrat || dem.type_contrat_souhaite,
       lieu: details.lieu || 'Siège Social — Ankorondrano, Antananarivo',
       salaire_affiche: details.salaire_affiche ?? true,
-      salaire_min: details.salaire_min || (poste ? poste.fourchette_salaire_min : undefined),
-      salaire_max: details.salaire_max || (poste ? poste.fourchette_salaire_max : undefined),
+      salaire_min: salaireMin,
+      salaire_max: salaireMax,
       nombre_postes: dem.nombre_postes,
       postes_pourvus: 0,
       date_publication: details.date_publication || now.split('T')[0],
