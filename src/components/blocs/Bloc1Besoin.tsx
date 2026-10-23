@@ -27,9 +27,14 @@ import { useTheme } from '../../theme/themeContext';
 interface Bloc1BesoinProps {
   state: SirhState;
   onNavigateToBloc2?: (demandeId: string) => void;
+  onNavigateToCreationPoste?: () => void;
 }
 
-export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBloc2 }) => {
+export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({
+  state,
+  onNavigateToBloc2,
+  onNavigateToCreationPoste,
+}) => {
   const { currentTheme } = useTheme();
   const [activeSubTab, setActiveSubTab] = useState<'demandes' | 'postes'>('demandes');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -207,6 +212,17 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
               Référentiel des Postes ({state.postes.length})
             </button>
           </div>
+
+          {['MANAGER', 'DIRECTION', 'RH', 'ADMIN'].includes(state.currentRole) && onNavigateToCreationPoste && (
+            <button
+              onClick={onNavigateToCreationPoste}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-lg transition-colors whitespace-nowrap shadow-xs"
+              title="Créer un nouveau profil de poste dans l'organigramme"
+            >
+              <PlusCircle className="w-4 h-4 text-indigo-600" />
+              <span>Nouveau Poste</span>
+            </button>
+          )}
 
           <button
             onClick={() => setShowCreateModal(true)}
@@ -403,13 +419,25 @@ export const Bloc1Besoin: React.FC<Bloc1BesoinProps> = ({ state, onNavigateToBlo
       {/* Sub-tab 2 : Référentiel des Postes */}
       {activeSubTab === 'postes' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Cartographie des Postes & Analyse des Effectifs
-            </h3>
-            <p className="text-xs text-slate-500">
-              Chaque poste est défini avec ses compétences requises, sa grille de rémunération et ses postes vacants calculés automatiquement.
-            </p>
+          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                Cartographie des Postes & Analyse des Effectifs
+              </h3>
+              <p className="text-xs text-slate-500">
+                Chaque poste est défini avec ses compétences requises, sa grille de rémunération et ses postes vacants calculés automatiquement.
+              </p>
+            </div>
+
+            {['MANAGER', 'DIRECTION', 'RH', 'ADMIN'].includes(state.currentRole) && onNavigateToCreationPoste && (
+              <button
+                onClick={onNavigateToCreationPoste}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Créer un Poste</span>
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">

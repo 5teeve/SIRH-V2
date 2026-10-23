@@ -23,7 +23,8 @@ import {
   ExternalLink,
   ChevronRight,
   Database,
-  RefreshCw
+  RefreshCw,
+  PlusCircle
 } from 'lucide-react';
 import { UserRole, Utilisateur, NotificationItem } from '../../types/sirh';
 import { ROLE_CONFIGS, getTabLabel } from '../../config/rolePermissions';
@@ -79,6 +80,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return LayoutDashboard;
       case 'bloc1':
         return Users;
+      case 'creation-poste':
+        return PlusCircle;
       case 'bloc2':
         return Search;
       case 'bloc3':

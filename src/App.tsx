@@ -11,6 +11,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { EspaceEmploye } from './components/employee/EspaceEmploye';
 import { ExecutiveDashboard } from './components/dashboard/ExecutiveDashboard';
 import { Bloc1Besoin } from './components/blocs/Bloc1Besoin';
+import { CreationPoste } from './components/blocs/CreationPoste';
 import { Bloc2Recrutement } from './components/blocs/Bloc2Recrutement';
 import { Bloc3Embauche } from './components/blocs/Bloc3Embauche';
 import { Bloc4Onboarding } from './components/blocs/Bloc4Onboarding';
@@ -44,7 +45,7 @@ export default function App() {
   };
 
   const handleNavigateTab = (tab: string) => {
-    const restrictedTabs = ['dashboard', 'bloc1', 'bloc2', 'bloc3', 'bloc4', 'audit'];
+    const restrictedTabs = ['dashboard', 'bloc1', 'creation-poste', 'bloc2', 'bloc3', 'bloc4', 'audit'];
     const isManagementRole = ['RH', 'MANAGER', 'FINANCE', 'DIRECTION', 'ADMIN'].includes(state.currentRole);
 
     if (restrictedTabs.includes(tab) && (!state.isAuthenticated || !isManagementRole)) {
@@ -134,6 +135,17 @@ export default function App() {
               <Bloc1Besoin
                 state={state}
                 onNavigateToBloc2={() => handleNavigateTab('bloc2')}
+                onNavigateToCreationPoste={() => handleNavigateTab('creation-poste')}
+              />
+            )}
+
+            {activeTab === 'creation-poste' && (
+              <CreationPoste
+                state={state}
+                onNavigateTab={handleNavigateTab}
+                onPosteCreated={() => {
+                  handleNavigateTab('bloc1');
+                }}
               />
             )}
 

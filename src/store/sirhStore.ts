@@ -1023,8 +1023,90 @@ export class SirhDataStore {
   }
 
   // =========================================================================
-  // BLOC 1 : EXPRESSION DU BESOIN EN PERSONNEL
+  // BLOC 1 : GESTION DES POSTES & EXPRESSION DU BESOIN
   // =========================================================================
+
+  public creerPoste(data: {
+    code: string;
+    intitule: string;
+    departement_id: string;
+    service_id: string;
+    description: string;
+    competences_requises: string[];
+    fourchette_salaire_min: number;
+    fourchette_salaire_max: number;
+    effectif_autorise: number;
+    statut?: 'ACTIF' | 'GELE';
+  }): Poste {
+    const allowedRoles: UserRole[] = ['MANAGER', 'DIRECTION', 'RH', 'ADMIN'];
+    if (!allowedRoles.includes(this.state.currentRole)) {
+      throw new Error("Action non autorisée. Seuls les Managers, la Direction et les RH peuvent créer un poste.");
+    }
+
+    if (!data.code || !data.intitule || !data.departement_id || !data.service_id) {
+      throw new Error("Veuillez renseigner tous les champs obligatoires (Code, Intitulé, Département, Service).");
+    }
+
+    const normalizedCode = data.code.trim().toUpperCase();
+    if (this.state.postes.some((p) => p.code.toUpperCase() === normalizedCode)) {
+      throw new Error(`Le code de poste '${normalizedCode}' est déjà utilisé dans le SIRH.`);
+    }
+
+    if (data.fourchette_salaire_min > data.fourchette_salaire_max) {
+      throw new Error("La fourchette salariale est invalide : le minimum ne peut excéder le maximum.");
+    }
+
+    if (data.effectif_autorise < 1) {
+      throw new Error("L'effectif autorisé doit être d'au moins 1 collaborateur.");
+    }
+
+    const newId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+    const nouveauPoste: Poste = {
+      id: newId,
+      code: normalizedCode,
+      intitule: data.intitule.trim(),
+      departement_id: data.departement_id,
+      service_id: data.service_id,
+      description: data.description.trim(),
+      competences_requises: data.competences_requises.filter((c) => c && c.trim() !== ''),
+      fourchette_salaire_min: data.fourchette_salaire_min,
+      fourchette_salaire_max: data.fourchette_salaire_max,
+      effectif_autorise: data.effectif_autorise,
+      effectif_pourvu: 0,
+      statut: data.statut || 'ACTIF',
+    };
+
+    this.state.postes = [nouveauPoste, ...this.state.postes];
+
+    this.logMouvement(
+      'postes',
+      nouveauPoste.code,
+      'CREATION_POSTE',
+      null,
+      nouveauPoste,
+      `Création du poste ${nouveauPoste.intitule} (${nouveauPoste.code}) par ${this.state.currentUser.prenom} ${this.state.currentUser.nom} (${this.state.currentRole})`
+    );
+
+    this.pushNotification(
+      'Nouveau Poste Créé',
+      `Le poste "${nouveauPoste.intitule}" (${nouveauPoste.code}) a été créé et intégré à la cartographie.`,
+      'INFO',
+      'RH',
+      'bloc1'
+    );
+
+    this.saveState();
+    this.syncActionToNeon('create_poste', nouveauPoste);
+
+    return nouveauPoste;
+  }
 
   public creerDemande(data: {
     type: 'CREATION' | 'REMPLACEMENT';

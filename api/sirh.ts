@@ -83,11 +83,41 @@ export default async function handler(req: any, res: any) {
     // Default: Load data from Neon PostgreSQL
     try {
       // Execute queries in parallel to hydrate the SIRH store
+      let services = await sql`SELECT * FROM services ORDER BY code`;
+      if (services.length === 0) {
+        try {
+          await sql`
+            INSERT INTO services (id, departement_id, code, nom, description, responsable_id) VALUES
+            ('d0010000-0000-0000-0000-000000000001', 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'SRV-DEV', 'Développement Web, Mobile & Cloud', 'Ingénierie logicielle et plateformes digitales', '22222222-2222-2222-2222-222222222222'),
+            ('d0010000-0000-0000-0000-000000000002', 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'SRV-DEVOPS', 'Infrastructures & Cloud Ops', 'Hébergement, CI/CD et sécurité des réseaux', '22222222-2222-2222-2222-222222222222'),
+            ('d0010000-0000-0000-0000-000000000003', 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'SRV-REC', 'Attraction des Talents & Recrutement', 'Sourcing et sélection des candidats', '33333333-3333-3333-3333-333333333333')
+            ON CONFLICT (id) DO NOTHING;
+          `;
+          services = await sql`SELECT * FROM services ORDER BY code`;
+        } catch (e) {
+          console.warn('Error seeding services:', e);
+        }
+      }
+
+      let postes = await sql`SELECT * FROM postes ORDER BY code`;
+      if (postes.length === 0 && services.length > 0) {
+        try {
+          await sql`
+            INSERT INTO postes (id, code, intitule, departement_id, service_id, description, competences_requises, fourchette_salaire_min, fourchette_salaire_max, effectif_autorise, effectif_pourvu) VALUES
+            ('e0010000-0000-0000-0000-000000000001', 'PST-DEV-FS', 'Ingénieur Full-Stack Senior (TypeScript / PostgreSQL)', 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd0010000-0000-0000-0000-000000000001', 'Conception et développement de solutions web robustes et scalables.', ARRAY['React', 'Node.js', 'PostgreSQL', 'Docker', 'Architecture REST'], 3500000.00, 5500000.00, 4, 2),
+            ('e0010000-0000-0000-0000-000000000002', 'PST-DEVOPS', 'Ingénieur DevOps & SRE', 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd0010000-0000-0000-0000-000000000002', 'Administration des pipelines CI/CD, cluster Kubernetes et monitoring.', ARRAY['Kubernetes', 'Terraform', 'Linux', 'AWS/GCP', 'PostgreSQL Admin'], 4000000.00, 6000000.00, 2, 1),
+            ('e0010000-0000-0000-0000-000000000003', 'PST-RH-REC', 'Chargé(e) de Recrutement & Marque Employeur', 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'd0010000-0000-0000-0000-000000000003', 'Pilotage complet du cycle de recrutement et onboarding des nouveaux talents.', ARRAY['Sourcing', 'Entretiens', 'Droit du travail malgache', 'SIRH'], 2000000.00, 3200000.00, 3, 2)
+            ON CONFLICT (id) DO NOTHING;
+          `;
+          postes = await sql`SELECT * FROM postes ORDER BY code`;
+        } catch (e) {
+          console.warn('Error seeding postes:', e);
+        }
+      }
+
       const [
         users,
         departements,
-        services,
-        postes,
         demandes,
         offres,
         candidats,
@@ -106,8 +136,6 @@ export default async function handler(req: any, res: any) {
       ] = await Promise.all([
         sql`SELECT * FROM utilisateurs WHERE is_deleted = false ORDER BY nom, prenom`,
         sql`SELECT * FROM departements ORDER BY code`,
-        sql`SELECT * FROM services ORDER BY code`,
-        sql`SELECT * FROM postes ORDER BY code`,
         sql`SELECT * FROM demandes_recrutement ORDER BY created_at DESC`,
         sql`SELECT * FROM offres_emploi ORDER BY date_publication DESC`,
         sql`SELECT * FROM candidats ORDER BY created_at DESC`,
@@ -237,6 +265,39 @@ export default async function handler(req: any, res: any) {
     const { action, payload } = req.body || {};
 
     try {
+      if (action === 'create_poste' && payload) {
+        const p = payload;
+        const isUuid = (val: string) =>
+          typeof val === 'string' &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+        const posteId = isUuid(p.id) ? p.id : crypto.randomUUID();
+
+        const result = await sql`
+          INSERT INTO postes (
+            id, code, intitule, departement_id, service_id, description,
+            competences_requises, fourchette_salaire_min, fourchette_salaire_max,
+            effectif_autorise, effectif_pourvu, statut
+          ) VALUES (
+            ${posteId}, ${p.code}, ${p.intitule}, ${p.departement_id}, ${p.service_id},
+            ${p.description}, ${p.competences_requises || []}, ${p.fourchette_salaire_min},
+            ${p.fourchette_salaire_max}, ${p.effectif_autorise || 1}, ${p.effectif_pourvu || 0},
+            ${p.statut || 'ACTIF'}
+          )
+          ON CONFLICT (code) DO UPDATE SET
+            intitule = EXCLUDED.intitule,
+            description = EXCLUDED.description,
+            competences_requises = EXCLUDED.competences_requises,
+            fourchette_salaire_min = EXCLUDED.fourchette_salaire_min,
+            fourchette_salaire_max = EXCLUDED.fourchette_salaire_max,
+            effectif_autorise = EXCLUDED.effectif_autorise,
+            statut = EXCLUDED.statut,
+            updated_at = NOW()
+          RETURNING id, code, intitule;
+        `;
+        return res.status(200).json({ ok: true, result });
+      }
+
       if (action === 'create_demande' && payload) {
         const d = payload;
         const result = await sql`
